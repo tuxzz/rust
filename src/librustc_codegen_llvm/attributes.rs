@@ -174,7 +174,7 @@ pub fn from_fn_attrs(
     set_frame_pointer_elimination(cx, llfn);
     set_probestack(cx, llfn);
 
-    if cx.sess().opts.debugging_opts.no_plt.unwrap_or(true) {
+    if !cx.sess().opts.debugging_opts.plt.unwrap_or(false) {
         // Only enable this optimization if full relro is also enabled.
         // In this case, lazy binding was already unavailable, so nothing is lost.
         if let RelroLevel::Full = cx.sess().target.target.options.relro_level {
