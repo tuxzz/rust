@@ -20,7 +20,7 @@ use rustc::ty::layout::HasTyCtxt;
 use rustc::ty::query::Providers;
 use rustc_data_structures::sync::Lrc;
 use rustc_data_structures::fx::FxHashMap;
-use rustc_target::spec::{PanicStrategy, RelroLevel};
+use rustc_target::spec::PanicStrategy;
 
 use attributes;
 use llvm::{self, Attribute};
@@ -138,6 +138,15 @@ pub fn apply_target_cpu_attr(cx: &CodegenCx<'ll, '_>, llfn: &'ll Value) {
             target_cpu.as_c_str());
 }
 
+/// Sets the `NonLazyBind` LLVM attribute on a given function,
+/// assuming the codegen options allow skipping the PLT.
+pub fn non_lazy_bind(sess: &Session, llfn: &'ll Value) {
+    // Don't generate calls through PLT if it's not necessary
+    if !sess.needs_plt() {
+        Attribute::NonLazyBind.apply_llfn(Function, llfn);
+    }
+}
+
 /// Composite function which sets LLVM attributes for function depending on its AST (#[attribute])
 /// attributes.
 pub fn from_fn_attrs(
@@ -173,14 +182,6 @@ pub fn from_fn_attrs(
 
     set_frame_pointer_elimination(cx, llfn);
     set_probestack(cx, llfn);
-
-    if !cx.sess().opts.debugging_opts.plt.unwrap_or(false) {
-        // Only enable this optimization if full relro is also enabled.
-        // In this case, lazy binding was already unavailable, so nothing is lost.
-        if let RelroLevel::Full = cx.sess().target.target.options.relro_level {
-            Attribute::NonLazyBind.apply_llfn(Function, llfn);
-        }
-    }
 
     if codegen_fn_attrs.flags.contains(CodegenFnAttrFlags::COLD) {
         Attribute::Cold.apply_llfn(Function, llfn);
