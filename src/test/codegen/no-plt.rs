@@ -22,3 +22,6 @@ extern "C" {
 pub unsafe fn call_through_plt() -> *mut u8 {
     getenv(b"\0".as_ptr())
 }
+
+// Ensure intrinsics also skip the PLT
+// CHECK: !"RtLibUseGOT"
