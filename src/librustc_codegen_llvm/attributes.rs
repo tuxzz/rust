@@ -174,10 +174,12 @@ pub fn from_fn_attrs(
     set_frame_pointer_elimination(cx, llfn);
     set_probestack(cx, llfn);
 
-    // Only enable this optimization if full relro is also enabled.
-    // In this case, lazy binding was already unavailable, so nothing is lost.
-    if let RelroLevel::Full = cx.sess().target.target.options.relro_level {
-        Attribute::NonLazyBind.apply_llfn(Function, llfn);
+    if cx.sess().opts.debugging_opts.no_plt.unwrap_or(true) {
+        // Only enable this optimization if full relro is also enabled.
+        // In this case, lazy binding was already unavailable, so nothing is lost.
+        if let RelroLevel::Full = cx.sess().target.target.options.relro_level {
+            Attribute::NonLazyBind.apply_llfn(Function, llfn);
+        }
     }
 
     if codegen_fn_attrs.flags.contains(CodegenFnAttrFlags::COLD) {

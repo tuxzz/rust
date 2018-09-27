@@ -1387,6 +1387,9 @@ options! {DebuggingOptions, DebuggingSetter, basic_debugging_options,
           "output a json file with profiler results"),
     emit_stack_sizes: bool = (false, parse_bool, [UNTRACKED],
           "emits a section containing stack size metadata"),
+    no_plt: Option<bool> = (None, parse_opt_bool, [TRACKED],
+          "skip the PLT when calling into ELF shared libraries
+          (default: true if full relro is also enabled)"),
 }
 
 pub fn default_lib_output() -> CrateType {
