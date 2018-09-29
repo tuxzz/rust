@@ -41,8 +41,7 @@ use syntax::feature_gate::AttributeType;
 use syntax_pos::{MultiSpan, Span};
 use util::profiling::SelfProfiler;
 
-use rustc_target::spec::PanicStrategy;
-use rustc_target::spec::{Target, TargetTriple};
+use rustc_target::spec::{PanicStrategy, RelroLevel, Target, TargetTriple};
 use rustc_data_structures::flock;
 use jobserver::Client;
 
@@ -980,6 +979,23 @@ impl Session {
 
     pub fn edition(&self) -> Edition {
         self.opts.edition
+    }
+
+    /// True if we cannot skip the PLT for shared library calls.
+    pub fn needs_plt(&self) -> bool {
+        let dbg_opts = &self.opts.debugging_opts;
+
+        let relro_level = dbg_opts.relro_level
+            .unwrap_or(self.target.target.options.relro_level);
+
+        // Only enable this optimization by default if full relro is also enabled.
+        // In this case, lazy binding was already unavailable, so nothing is lost.
+        // This also ensures `-Wl,-z,now` is supported by the linker.
+        let full_relro = RelroLevel::Full == relro_level;
+
+        // If user didn't explicitly forced us to use the PLT,
+        // then try to skip it where possible.
+        dbg_opts.plt.unwrap_or(!full_relro)
     }
 }
 
